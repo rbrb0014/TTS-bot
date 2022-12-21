@@ -1,6 +1,12 @@
-const { config } = require('dotenv');
-const { Client, GatewayIntentBits, Routes } = require('discord.js');
-const { REST } = require('@discordjs/rest');
+import { config } from 'dotenv';
+import { Client, GatewayIntentBits, Routes, User } from 'discord.js';
+import { ActionRowBuilder, SelectMenuBuilder, SlashCommandBuilder } from '@discordjs/builders';
+import { REST } from '@discordjs/rest';
+import OrderCommand from './commands/order.js';
+import RolesCommand from './commands/roles.js';
+import UsersCommand from './commands/user.js';
+import ChannelsCommand from './commands/channel.js';
+import BanCommand from './commands/ban.js';
 
 config();
 
@@ -10,7 +16,8 @@ const GUILD_ID = process.env.GUILD_ID;
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
 });
@@ -21,58 +28,42 @@ client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
 client.on('interactionCreate', (interaction) => {
   if (interaction.isChatInputCommand()) {
-    const food = interaction.options.get('food').value;
-    const drink = interaction.options.get('drinkt').value;
-    interaction.reply({ content: `You ordered ${food} and ${drink}` });//get value of food
+    if (interaction.commandName === 'order') {
+      console.log('Order Command');
+      console.log(interaction);
+      const actionRowComponent = new ActionRowBuilder().setComponents(
+        new SelectMenuBuilder().setCustomId('food_options').setOptions([
+          { label: 'Cake', value: 'cake' },
+          { label: 'Pizza', value: 'pizza' },
+          { label: 'Sushi', value: 'sushi' },
+        ])
+      );
+      const actionRowDrinkMenu = new ActionRowBuilder().setComponents(
+        new SelectMenuBuilder().setCustomId('drink_options').setOptions([
+          { label: 'Orange Juice', value: 'orange_juice' },
+          { label: 'Coca-Cola', value: 'coca_cola' },
+        ])
+      );
+      interaction.reply({
+        components: [actionRowComponent.toJSON(), actionRowDrinkMenu.toJSON()],
+      });
+    }
+  } else if (interaction.isAnySelectMenu()) {
+    if(interaction.customId === 'food_options'){
+      console.log(interaction.values);
+    }
+    if(interaction.customId === 'drink_options'){
+      console.log(interaction.values);
+    }
+
+    interaction.reply({
+      content:'wow',
+    })
   }
 });
 
 async function main() {
-  const commands = [
-    {
-      name: 'order',
-      description: 'Order something',
-      options: [
-        {
-          name: 'food',
-          description: 'the type of food',
-          type: 3, //string
-          required: true,
-          choices: [ //필수선택, 다른 값 입력 금지
-            {
-              name: 'Cake', //뜨는 형식
-              value: 'cake', //실제 입력 폼
-            },
-            {
-              name: 'Hamburger',
-              value: 'hamburger',
-            },
-          ]
-        },
-        {
-          name: 'drink',
-          description: 'the type of drink',
-          type: 3,
-          required: true,
-          choices: [
-            {
-              name: 'Water',
-              value: 'water',
-            },
-            {
-              name: 'Coca-Cola',
-              value: 'coca-cola',
-            },
-            {
-              name: 'Sprite',
-              value: 'sprite',
-            },
-          ],
-        },
-      ],
-    },
-  ];
-
+  const commands = [OrderCommand, RolesCommand, UsersCommand, ChannelsCommand, BanCommand];
   try {
     console.log('Started refreshing application (/) commands.');
 
@@ -80,7 +71,6 @@ async function main() {
       body: commands,
     });
     client.login(TOKEN);
-    // console.log('Successfully reloaded application (/) commands.');
   } catch (err) {
     console.error(err);
   }
