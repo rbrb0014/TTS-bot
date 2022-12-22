@@ -4,6 +4,7 @@ import UsersCommand from './commands/user.js';
 import ChannelsCommand from './commands/channel.js';
 import BanCommand from './commands/ban.js';
 import RegisterCommand from './commands/register.js';
+import ButtonCommand from './commands/button.js';
 
 export default [
   OrderCommand,
@@ -11,5 +12,6 @@ export default [
   UsersCommand,
   ChannelsCommand,
   BanCommand,
-  RegisterCommand
+  RegisterCommand,
+  ButtonCommand,
 ];

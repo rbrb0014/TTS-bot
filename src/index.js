@@ -1,6 +1,8 @@
 import { config } from 'dotenv';
 import {
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   Client,
   GatewayIntentBits,
   InteractionType,
@@ -31,9 +33,37 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
+client.on('messageCreate', async (m) => {
+  if (m.author.bot) return;
+
+  const sentMessage = await m.channel.send({
+    content: 'Hello, World!',
+    components: [
+      new ActionRowBuilder().setComponents(
+        new ButtonBuilder()
+          .setCustomId('button1')
+          .setLabel('Button 1')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('button2')
+          .setLabel('Button 2')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setLabel('Discord.js Docs')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://discord.js.org/'),
+        new ButtonBuilder()
+          .setCustomId('button4')
+          .setLabel('Button 4')
+          .setStyle(ButtonStyle.Danger),
+      )
+    ]
+  })
+})
+
 client.on('interactionCreate', (interaction) => {
   if (interaction.isChatInputCommand()) {
-    console.log('Chat Command');
+    console.log(interaction.commandName);
     if (interaction.commandName === 'order') {
       const actionRowComponent = new ActionRowBuilder().setComponents(
         new SelectMenuOptionBuilder().setCustomId('food_options').setOptions([
@@ -77,6 +107,29 @@ client.on('interactionCreate', (interaction) => {
         );
 
       interaction.showModal(modal);
+    } else if (interaction.commandName === 'button') {
+      interaction.reply({
+        content: 'Button!', components: [
+          new ActionRowBuilder().setComponents(
+            new ButtonBuilder()
+              .setCustomId('button1')
+              .setLabel('Button 1')
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId('button2')
+              .setLabel('Button 2')
+              .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+              .setLabel('Discord.js Docs')
+              .setStyle(ButtonStyle.Link)
+              .setURL('https://discord.js.org/'),
+            new ButtonBuilder()
+              .setCustomId('button4')
+              .setLabel('Button 4')
+              .setStyle(ButtonStyle.Danger),
+          )
+        ]
+      });
     }
   } else if (interaction.isAnySelectMenu()) {
     console.log('Select Menu');
@@ -86,14 +139,19 @@ client.on('interactionCreate', (interaction) => {
       console.log(interaction.values);
     }
   } else if (interaction.type === InteractionType.ModalSubmit) {
-    console.log('Modal Sbmitted...');
+    console.log('Modal Submitted...');
     console.log(interaction);
     if (interaction.customId === 'registerUserModal') {
       console.log(interaction.fields.getTextInputValue('username'));
       interaction.reply({
         content: 'You successfully submitted your details!',
-      })
+      });
     }
+  } else if (interaction.isButton()) {
+    console.log('Button interaction');
+    console.log(interaction.componentType);
+    console.log(interaction);
+    interaction.reply({ content: 'Thanks for clicking on the button1!' });
   }
 });
 
