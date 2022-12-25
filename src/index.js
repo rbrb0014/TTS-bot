@@ -1,22 +1,12 @@
 import { config } from 'dotenv';
 import schedule from 'node-schedule';
 import { REST } from '@discordjs/rest';
+import { createAudioPlayer, createAudioResource, joinVoiceChannel } from '@discordjs/voice';
+import { ActionRowBuilder, Client, GatewayIntentBits, Routes, StringSelectMenuBuilder, } from 'discord.js';
 import Commands from './commands/commands.js';
-import {
-  ActionRowBuilder,
-  Client,
-  GatewayIntentBits,
-  Routes,
-  StringSelectMenuBuilder,
-} from 'discord.js';
-import {
-  registerUserModal,
-  ReportUserModal
-} from './modals/modals.js';
-import {
-  buttonClickedMessage
-} from './messages/messages.js';
-
+import { registerUserModal, ReportUserModal } from './modals/modals.js';
+import { buttonClickedMessage } from './messages/messages.js';
+import tts from 'google-tts-api';
 config();
 
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
@@ -26,21 +16,41 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
 const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
+let tts_channel = null;//데이터베이스에 불러오기
+
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
-client.on('messageCreate', async (m) => {
-  if (m.author.bot) return;
-  if (m.author.system) return;
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (message.author.system) return;
 
-  if (m.content === 'hi') {
-    console.log('hello command executed');
-    m.channel.send(buttonClickedMessage);
-  }
+  if (message.channel !== tts_channel) return;
+
+  const play = tts.getAudioUrl(message.content, {
+    lang: 'ko-KR',
+    slow: false,
+    host: 'https://translate.google.com',
+  })
+
+  const connection = joinVoiceChannel({
+    channelId: message.member.voice.channelId,
+    guildId: message.guildId,
+    adapterCreator: message.guild.voiceAdapterCreator,
+  });
+
+  const player = createAudioPlayer();
+  const resource = createAudioResource(play);
+
+  connection.subscribe(player);
+  player.play(resource);
+
+  console.log('TTS Command executed');
 });
 
 client.on('channelCreate', async (createdChannel) => {
@@ -49,8 +59,8 @@ client.on('channelCreate', async (createdChannel) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+  console.log(`command name : ${interaction.commandName}, customId : ${interaction.customId}`);
   if (interaction.isChatInputCommand()) {
-    console.log(`${interaction.commandName} Command executed`);
     if (interaction.commandName === 'order') {
       const actionRowFoodMenu = new ActionRowBuilder().setComponents(
         new StringSelectMenuBuilder().setCustomId('food_options').setOptions([
@@ -90,9 +100,14 @@ client.on('interactionCreate', async (interaction) => {
       schedule.scheduleJob(date, () => { channel.send({ content: message, }); });
 
       console.log(`send "${message}" on ${date} to ${channel}.`);
+    } else if (interaction.commandName === 'set') {
+      tts_channel = interaction.options.getChannel('channel');
+      interaction.reply({ content: `TTS activated in ${tts_channel}.` });
+      //데이터베이스에 저장 필요
     }
   } else if (interaction.isAnySelectMenu()) {
     console.log('Select Menu');
+
     if (interaction.customId === 'food_options') {
       console.log(interaction.values);
       interaction.showModal(registerUserModal);
@@ -146,33 +161,34 @@ client.on('interactionCreate', async (interaction) => {
       }).catch(console.log);
     }
   } else if (interaction.isMessageContextMenuCommand()) {
+    console.log(interaction.commandName);
     if (interaction.commandName === 'ReportText') {
       await interaction.showModal(ReportUserModal);
-      const reportUserModalSubmitInteraction = await interaction.awaitModalSubmit({
+      await interaction.awaitModalSubmit({
         filter: (i) => {
           console.log('Await Modal Submit...');
-          return true;
+          return i.customId === 'reportTextModal';
         },
-        time: 10000,
-      });
+        time: 10_000,//ms
+      }).then((reportTextModalSubmitInteraction) => {
+        console.log({
+          type: 'ReportText',
+          reportingUserId: interaction.user.id,
+          reportedUserId: interaction.targetMessage.author.id,
+          reason: reportTextModalSubmitInteraction.fields.getTextInputValue('reportMessage'),
+          content: interaction.targetMessage.content,
+          component: interaction.targetMessage.components,
+          attachment: interaction.targetMessage.attachments,
+        });
 
-      console.log({
-        type: 'ReportText',
-        reportingUserId: interaction.user.id,
-        reportedUserId: interaction.targetMessage.author.id,
-        reason: reportUserModalSubmitInteraction.fields.getTextInputValue('reportMessage'),
-        content: interaction.targetMessage.content,
-        component: interaction.targetMessage.components,
-        attachment: interaction.targetMessage.attachments,
-      });
-
-      reportUserModalSubmitInteraction.reply({
-        content: `Thank you for reporting ${interaction.targetMessage.author.id
-          }.\nReason : ${reportUserModalSubmitInteraction.fields.getTextInputValue(
-            'reportMessage'
-          )}`,
-        ephemeral: true,//작성자만 보이게
-      });
+        reportTextModalSubmitInteraction.reply({
+          content: `Thank you for reporting ${interaction.targetMessage.author.id
+            }.\nReason : ${reportTextModalSubmitInteraction.fields.getTextInputValue(
+              'reportMessage'
+            )}`,
+          ephemeral: true,//작성자만 보이게
+        });
+      }).catch(console.log);
     }
   }
 });

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder } from 'discord.js';
 
 const channelsCommand = new SlashCommandBuilder()
   .setName('channels')
@@ -14,11 +14,11 @@ const channelsCommand = new SlashCommandBuilder()
       .setName('deletemsgs')
       .setDescription('Delete the messages')
       .setRequired(true)
-  ).addIntegerOption((option) => 
+  ).addIntegerOption((option) =>
     option
       .setName('age')
       .setDescription('Enter your age')
-  ).addAttachmentOption((option) => 
+  ).addAttachmentOption((option) =>
     option
       .setName('file')
       .setDescription('file')//파일 붙이기

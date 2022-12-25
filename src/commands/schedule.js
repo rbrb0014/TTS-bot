@@ -1,5 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChannelType } from 'discord.js';
+import { SlashCommandBuilder, ChannelType } from 'discord.js';
 
 const scheduleCommand = new SlashCommandBuilder()
   .setName('schedule')

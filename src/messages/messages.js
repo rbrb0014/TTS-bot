@@ -1,4 +1,4 @@
-import { ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 export const buttonClickedMessage = {
   content: 'Hello, World!',
