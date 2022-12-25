@@ -1,19 +1,21 @@
 import { config } from 'dotenv';
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  Client,
-  GatewayIntentBits,
-  ModalBuilder,
-  Routes,
-  StringSelectMenuBuilder,
-  TextInputBuilder,
-  TextInputStyle
-} from 'discord.js';
+import schedule from 'node-schedule';
 import { REST } from '@discordjs/rest';
 import Commands from './commands/commands.js';
-import schedule from 'node-schedule';
+import {
+  ActionRowBuilder,
+  Client,
+  GatewayIntentBits,
+  Routes,
+  StringSelectMenuBuilder,
+} from 'discord.js';
+import {
+  registerUserModal,
+  ReportUserModal
+} from './modals/modals.js';
+import {
+  buttonClickedMessage
+} from './messages/messages.js';
 
 config();
 
@@ -28,69 +30,6 @@ const client = new Client({
 });
 
 const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
-
-const buttonClickedMessage = {
-  content: 'Hello, World!',
-  components: [
-    new ActionRowBuilder().setComponents(
-      new ButtonBuilder()
-        .setCustomId('button1')
-        .setLabel('Button 1')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('button2')
-        .setLabel('Button 2')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setLabel('Discord.js Docs')
-        .setStyle(ButtonStyle.Link)
-        .setURL('https://discord.js.org/'),
-      new ButtonBuilder()
-        .setCustomId('button4')
-        .setLabel('Button 4')
-        .setStyle(ButtonStyle.Danger),
-    )
-  ]
-};
-
-const registerUserModal = new ModalBuilder()
-  .setTitle('Register User Form')
-  .setCustomId('registerUserModal')
-  .setComponents(
-    new ActionRowBuilder().setComponents(
-      new TextInputBuilder()
-        .setCustomId('username')
-        .setLabel('username')
-        .setStyle(TextInputStyle.Short)
-    ),
-    new ActionRowBuilder().setComponents(
-      new TextInputBuilder()
-        .setCustomId('email')
-        .setLabel('email')
-        .setStyle(TextInputStyle.Short)
-    ),
-    new ActionRowBuilder().setComponents(
-      new TextInputBuilder()
-        .setCustomId('comment')
-        .setLabel('comment')
-        .setStyle(TextInputStyle.Paragraph)
-    )
-  );
-
-const ReportUserModal = new ModalBuilder()
-  .setCustomId('reportUserModal')
-  .setTitle('Report a User')
-  .setComponents(
-    new ActionRowBuilder().setComponents(
-      new TextInputBuilder()
-        .setCustomId('reportMessage')
-        .setLabel('Report Message')
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(true)
-        .setMinLength(10)
-        .setMaxLength(500)
-    )
-  );
 
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
