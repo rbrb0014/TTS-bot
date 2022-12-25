@@ -1,12 +1,12 @@
 import { config } from 'dotenv';
 import schedule from 'node-schedule';
 import { REST } from '@discordjs/rest';
-import { createAudioPlayer, createAudioResource, joinVoiceChannel } from '@discordjs/voice';
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel } from '@discordjs/voice';
 import { ActionRowBuilder, Client, GatewayIntentBits, Routes, StringSelectMenuBuilder, } from 'discord.js';
 import Commands from './commands/commands.js';
 import { registerUserModal, ReportUserModal } from './modals/modals.js';
 import { buttonClickedMessage } from './messages/messages.js';
-import tts from 'google-tts-api';
+import Tts from 'google-tts-api';
 config();
 
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
@@ -24,34 +24,78 @@ const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
 let tts_channel = null;//데이터베이스에 불러오기
 
+
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
+
+
+const queue = new Map();
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (message.author.system) return;
-
   if (message.channel !== tts_channel) return;
 
-  const play = tts.getAudioUrl(message.content, {
-    lang: 'ko-KR',
+  const server_queue = queue.get(message.guild.id);
+  const voice_channel = message.member.voice.channel;
+
+  if (!voice_channel)
+    return message.channel.send("no voice channel exist.");
+  let Lang = 'ko-KR';
+
+  const playtext = Tts.getAudioUrl(message.content, {
+    lang: Lang,
     slow: false,
     host: 'https://translate.google.com',
   })
 
-  const connection = joinVoiceChannel({
-    channelId: message.member.voice.channelId,
-    guildId: message.guildId,
-    adapterCreator: message.guild.voiceAdapterCreator,
-  });
+  if (!server_queue) {
+    const queue_constructor = {
+      voice_channel: voice_channel,
+      text_channel: message.channel,
+      connection: null,
+      texts: [],
+    };
+    queue.set(message.guild.id, queue_constructor);
+    queue_constructor.texts.push(playtext);
 
-  const player = createAudioPlayer();
-  const resource = createAudioResource(play);
-
-  connection.subscribe(player);
-  player.play(resource);
-
-  console.log('TTS Command executed');
+    try {
+      const connection = joinVoiceChannel({
+        channelId: voice_channel.id,
+        guildId: message.guild.id,
+        adapterCreator: message.guild.voiceAdapterCreator,
+      });
+      queue_constructor.connection = connection;//연결여부
+      audioPlayer(message.guild, queue_constructor.texts[0]);
+    } catch (err) {
+      queue.delete(message.guild.id);
+      message.channel.send("error occurred.");
+      throw err;
+    }
+  } else {
+    server_queue.texts.push(playtext);
+    return console.log('tts text added');
+  }
 });
+
+const audioPlayer = async (guild, text) => {
+  const text_queue = await queue.get(guild.id);
+  //If no song is left in the server queue. Leave the voice channel and delete the key and value pair from the global queue.
+  if (!text) {
+    // song_queue.voice_channel.leave();
+    queue.delete(guild.id);
+    return;
+  }
+  const player = createAudioPlayer();
+  let resource = createAudioResource(text);
+  await text_queue.connection.subscribe(player);
+  player.play(resource);
+  player.on(AudioPlayerStatus.Idle, () => {
+    text_queue.texts.shift();
+    audioPlayer(guild, text_queue.texts[0]);
+  })
+
+  return console.log("Some Thing Here");
+};
 
 client.on('channelCreate', async (createdChannel) => {
   console.log(`${createdChannel.name} 채널 생성됨`);
