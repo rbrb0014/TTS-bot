@@ -7,6 +7,7 @@ import Commands from './commands/commands.js';
 import { registerUserModal, ReportUserModal } from './modals/modals.js';
 import { buttonClickedMessage } from './messages/messages.js';
 import Tts from 'google-tts-api';
+
 config();
 
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
@@ -24,10 +25,7 @@ const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
 let tts_channel = null;//데이터베이스에 불러오기
 
-
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
-
-
 
 const queue = new Map();
 client.on('messageCreate', async (message) => {

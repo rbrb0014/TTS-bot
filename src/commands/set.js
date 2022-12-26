@@ -1,4 +1,4 @@
-import { ChannelType, SlashCommandBuilder, SlashCommandChannelOption } from 'discord.js';
+import { ChannelType, SlashCommandBuilder } from 'discord.js';
 
 const setCommand = new SlashCommandBuilder()
   .setName('set')
