@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import schedule from 'node-schedule';
 import { REST } from '@discordjs/rest';
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel } from '@discordjs/voice';
-import { ActionRowBuilder, Client, GatewayIntentBits, Routes, StringSelectMenuBuilder, } from 'discord.js';
+import { ActionRowBuilder, Client, Embed, EmbedBuilder, GatewayIntentBits, Routes, StringSelectMenuBuilder, } from 'discord.js';
 import Commands from './commands/commands.js';
 import { registerUserModal, ReportUserModal } from './modals/modals.js';
 import { buttonClickedMessage } from './messages/messages.js';
@@ -24,13 +24,25 @@ const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
 let tts_channel = null;//데이터베이스에 불러오기
 
-
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 
-
-
 const queue = new Map();
+const hasEmoteRegex = /<a?:.+:\d+>/gm;
+const emoteRegex = /<:.+:(\d+)>/gm;
+const animatedEmoteRegex = /<a:.+:(\d+)>/gm;
 client.on('messageCreate', async (message) => {
+  const emoji = message.content.match(hasEmoteRegex);
+  if (emoji) {
+    message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setAuthor({ name: message.member.nickname, iconURL: message.author.avatarURL() })
+          .setImage(`https://cdn.discordapp.com/emojis/${emoteRegex.exec(emoji)[1]}.${}png?v=1`)
+      ]
+    })
+  }
+  console.log(message.embeds.filter(embed => embed.author !== null).map(embed => embed.author));
+
   if (message.author.bot) return;
   if (message.author.system) return;
   if (message.channel !== tts_channel) return;
@@ -241,7 +253,10 @@ async function main() {
   try {
     console.log('Started refreshing application (/) commands.');
 
-    await rest.put(Routes.applicationCommands(CLIENT_ID, GUILD_ID), {
+    // await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
+    //   body: Commands,
+    // });
+    await rest.put(Routes.applicationCommands(CLIENT_ID), {
       body: Commands,
     });
     client.login(BOT_TOKEN);
