@@ -1,10 +1,10 @@
-import { config } from 'dotenv';
-import { REST } from '@discordjs/rest';
-import { Client, Collection, GatewayIntentBits, Routes, } from 'discord.js';
-import fs from 'fs';
+//const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = require('../config.json');
+const dotenv = require('dotenv');
+const Path = require('node:path');
+const { Client, Collection, GatewayIntentBits, Routes, Events } = require('discord.js');
+const fs = require('fs');
 
-config();
-
+dotenv.config();
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
 const client = new Client({
@@ -15,52 +15,42 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
   ],
 });
-
-const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
-
-const commandFiles = fs
-  .readdirSync("./src/commands")
-  .filter((file) => file.endsWith("2.js"));
-
-const commands = [];
-
 client.commands = new Collection();
 
+const commandsPath = Path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('2.js'));//need to be editted
+
 for (const file of commandFiles) {
-  const command = await import(`./commands/${file}`);
-  console.log(command);
-  commands.push(command.data.toJSON());
-  client.commands.set(command.data.name, command);
+  const filePath = Path.join(commandsPath, file);
+  const command = require(filePath);
+  // Set a new item in the Collection with the key as the command name and the value as the exported module
+  if ('data' in command && 'execute' in command) {
+    client.commands.set(command.data.name, command);
+  } else {
+    console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+  }
 }
 
-client.once('ready', async () => {
-  try {
-    console.log('Started refreshing application (/) commands.');
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID, GUILD_ID), {
-      body: commands,
-    });
-    client.login(BOT_TOKEN);
-    console.log(`${client.user.tag} logged in`);
-  } catch (err) {
-    console.error(err);
-  }
-});
-
-client.on("interactionCreate", async (interaction) => {
+client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
 
-  if (!command) return;
+  if (!command) {
+    console.error(`No command matching ${interaction.commandName} was found.`);
+    return;
+  }
 
   try {
-    await command.default.execute(interaction);
+    await command.execute(interaction);
   } catch (error) {
     console.error(error);
-    await interaction.reply({
-      content: "There was an error while executing this command!",
-      ephemeral: true,
-    });
+    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
   }
 });
+
+client.once(Events.ClientReady, async () => {
+  console.log(`${client.user.tag} logged in`);
+});
+
+client.login(BOT_TOKEN);

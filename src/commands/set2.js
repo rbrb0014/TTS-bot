@@ -1,6 +1,6 @@
-import { ChannelType, SlashCommandBuilder } from 'discord.js';
+const { ChannelType, SlashCommandBuilder } = require('discord.js');
 
-export default {
+module.exports = {
   data: new SlashCommandBuilder()
     .setName('set')
     .setDescription('TTS settings')
@@ -16,6 +16,6 @@ export default {
         )
     ),
   execute: async (interaction) => {
-    return interaction.reply('pong!');
+    await interaction.reply('pong!');
   }
 }
