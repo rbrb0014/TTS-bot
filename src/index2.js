@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const Path = require('node:path');
 const { Client, Collection, GatewayIntentBits, Routes, Events } = require('discord.js');
 const fs = require('fs');
+const Modals = require('./modals/modals.js');
 
 dotenv.config();
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
@@ -31,8 +32,30 @@ for (const file of commandFiles) {
   }
 }
 
+client.on(Events.MessageCreate, async (interaction) => {
+  if (interaction.author.bot) return;
+  if (interaction.author.system) return;
+
+  const command = client.commands.get('tts');
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(error);
+  }
+})
+
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isModalSubmit()) return;
+  console.log('Modal Submitted..');
+  Modals.forEach(modal => {
+    if (interaction.customId === modal.data.custom_id) {
+      //modal도 commands처럼 가져와서 get하는게 나을것같음
+    }
+  });
+})
+
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
 

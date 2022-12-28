@@ -23,7 +23,7 @@ const client = new Client({
 
 const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
-let tts_channel = null;//데이터베이스에 불러오기
+let { tts_channel } = require('./commands/set2');//데이터베이스에 불러오기
 
 client.on('ready', () => { console.log(`${client.user.tag} logged in`); });
 

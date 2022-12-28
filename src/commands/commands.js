@@ -8,7 +8,6 @@ import ButtonCommand from './button.js';
 import ReportUserCommand from './reportuser.js';
 import ReportTextCommand from './reporttext.js';
 import ScheduleCommand from './schedule.js';
-import TtsCommand from './tts.js';
 import SetCommand from './set.js';
 
 export default [
@@ -22,6 +21,5 @@ export default [
   ReportUserCommand,
   ReportTextCommand,
   ScheduleCommand,
-  TtsCommand,
   SetCommand,
 ];

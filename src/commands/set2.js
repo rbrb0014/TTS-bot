@@ -1,4 +1,5 @@
 const { ChannelType, SlashCommandBuilder } = require('discord.js');
+let tts_channel = null;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,6 +17,8 @@ module.exports = {
         )
     ),
   execute: async (interaction) => {
-    await interaction.reply('pong!');
-  }
+    tts_channel = interaction.options.getChannel('channel');
+    await interaction.reply({ content: `TTS activated in ${tts_channel}.` });
+  },
+  getTtsChannel: () => { return tts_channel },
 }
